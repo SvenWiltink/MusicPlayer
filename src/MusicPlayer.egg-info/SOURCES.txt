@@ -1,0 +1,9 @@
+setup.py
+src/MusicPlayer/__init__.py
+src/MusicPlayer/player.py
+src/MusicPlayer/queue.py
+src/MusicPlayer.egg-info/PKG-INFO
+src/MusicPlayer.egg-info/SOURCES.txt
+src/MusicPlayer.egg-info/dependency_links.txt
+src/MusicPlayer.egg-info/requires.txt
+src/MusicPlayer.egg-info/top_level.txt
