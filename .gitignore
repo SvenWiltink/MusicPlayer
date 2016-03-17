@@ -1,0 +1,8 @@
+.idea/
+build/
+dist/
+venv/
+virtualenv/
+tmp/
+spotify_appkey.key
+src/MusicPlayer.egg-info/

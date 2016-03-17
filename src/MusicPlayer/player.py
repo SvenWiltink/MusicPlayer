@@ -39,6 +39,7 @@ class SpotifyPlayer(AbstractPlayer):
 
         self.session.on(spotify.SessionEvent.CONNECTION_STATE_UPDATED, self.on_connection_state_updated)
         self.session.on(spotify.SessionEvent.END_OF_TRACK, self.on_end_of_spotify_track)
+        self.session.on(spotify.SessionEvent.PLAY_TOKEN_LOST, self.on_end_of_spotify_track)
 
         self.logged_in.wait()
 
@@ -55,8 +56,9 @@ class SpotifyPlayer(AbstractPlayer):
         self.session.player.play()
 
     def on_end_of_spotify_track(self, session):
-        self.on_end_of_track()
         self.session.player.pause()
+        self.on_end_of_track()
+
 
 class YoutubePlayer(AbstractPlayer):
 
@@ -73,9 +75,8 @@ class YoutubePlayer(AbstractPlayer):
         would give to subprocess.Popen.
         """
         def runInThread(callback, url):
-            proc = subprocess.Popen(['mpsyt', "playurl", url], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.Popen(['/usr/bin/mpv', url, '--no-video'], stdin=subprocess.PIPE)
             proc.wait()
-            print("PROC WAIT ENDED")
             callback()
             return
 
@@ -118,6 +119,13 @@ class MusicPlayer(object):
                 print("song is a youtube song")
                 self.youtube_player.play_queue_item(item)
 
+    def get_queue_string(self):
+        res = ""
+        for item in self.queue.get_all():
+            res += item.get_url() + "\r\n"
+
+        return res
+
     def is_playing(self):
         return self.current is not None
 
@@ -131,6 +139,7 @@ class MusicPlayer(object):
 
     def on_end_of_track(self):
         print("A TRACK HAS ENDED")
+        self.current = None
         if self.queue.has_next():
             self.play_next()
         else:

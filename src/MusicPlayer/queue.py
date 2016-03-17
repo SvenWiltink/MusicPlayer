@@ -15,6 +15,9 @@ class Queue(object):
     def has_next(self):
         return len(self.queue_items) > 0
 
+    def get_all(self):
+        return self.queue_items
+
 
 class QueueItem(object):
 

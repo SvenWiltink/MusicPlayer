@@ -1,3 +1,2 @@
 pyspotify
-pafy
-youtube-dl
+pyalsaaudio

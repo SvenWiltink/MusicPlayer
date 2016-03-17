@@ -7,7 +7,6 @@ setup(name='MusicPlayer',
       package_dir={'': 'src'},        # tell distutils packages are under src
       install_requires=[
             'pyspotify',
-            'pafy',
-            'youtube-dl'
+            'pyalsaaudio'
       ]
 )
