@@ -13,7 +13,7 @@ class AbstractPlayer(object):
     def play_queue_item(self, QueueItem):
         raise NotImplementedError
 
-    def stop(self):
+    def skip_song(self):
         raise NotImplementedError
 
     def on_end_of_track(self):
@@ -59,6 +59,10 @@ class SpotifyPlayer(AbstractPlayer):
         self.session.player.pause()
         self.on_end_of_track()
 
+    def skip_song(self):
+        self.session.player.unload()
+        self.on_end_of_track()
+
 
 class YoutubePlayer(AbstractPlayer):
 
@@ -76,12 +80,14 @@ class YoutubePlayer(AbstractPlayer):
         """
         def runInThread(callback, url):
             proc = subprocess.Popen(['/usr/bin/mpv', url, '--no-video'], stdin=subprocess.PIPE)
+            self.subProcess = proc
             proc.wait()
             callback()
             return
 
         thread = threading.Thread(target=runInThread, args=(callback, url))
         thread.start()
+        self.thread = thread
         return thread
 
     def play_queue_item(self, QueueItem):
@@ -89,18 +95,26 @@ class YoutubePlayer(AbstractPlayer):
         print("YOUTUBE URL: " + url)
         self.play_url(self.on_end_of_track, url)
 
-    def stop(self):
+    def skip_song(self):
+        print("trying to skip a youtube song")
         if self.thread is not None and self.thread.is_alive():
-            self.subProcess.communicate(input='q')
+            print("printing q to mpv")
+            self.subProcess.kill()
 
 
 class MusicPlayer(object):
 
-    def __init__(self, spotify_username, spotify_password):
-        self.spotify_player = SpotifyPlayer(spotify_username, spotify_password, self.on_end_of_track)
+    def __init__(self, options):
+
+        if 'spotify_username' in options:
+            self.spotify_player = SpotifyPlayer(options.get('spotify_username'), options.get('spotify_password'), self.on_end_of_track)
+        else:
+            print("Spotify support disabled")
+            self.spotify_player = None
         self.youtube_player = YoutubePlayer(self.on_end_of_track)
         self.queue = Queue()
         self.current = None
+        self.current_player = None
         self.shouldStop = threading.Event()
         self.hasStarted = False
 
@@ -114,10 +128,18 @@ class MusicPlayer(object):
             self.current = item
             if isinstance(item, SpotifyQueueItem):
                 print("song is a spotifysong")
+                if self.spotify_player is None:
+                    raise Exception('Spotify support is not enabled')
+                self.current_player = self.spotify_player
                 self.spotify_player.play_queue_item(item)
             elif isinstance(item, YoutubeQueueItem):
                 print("song is a youtube song")
+                self.current_player = self.youtube_player
                 self.youtube_player.play_queue_item(item)
+
+    def skip_song(self):
+        if self.is_playing():
+            self.current_player.skip_song()
 
     def get_queue_string(self):
         res = ""
@@ -129,17 +151,18 @@ class MusicPlayer(object):
     def is_playing(self):
         return self.current is not None
 
-    def add_to_queue(self, QueueItem):
+    def add_to_queue(self, queue_item):
         """
         :param QueueItem QueueItem:
         """
-        self.queue.add(QueueItem)
+        self.queue.add(queue_item)
         if self.hasStarted and not self.is_playing():
             self.play_next()
 
     def on_end_of_track(self):
         print("A TRACK HAS ENDED")
         self.current = None
+        self.current_player = None
         if self.queue.has_next():
             self.play_next()
         else:
